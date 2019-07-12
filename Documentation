@@ -1,0 +1,69 @@
+<Documentation of a KuroScript>
+<Anything between greater and lesser than signs is a comment>
+
+The default memory allocated to a stupid program is 5 memory cells each being 4 bytes long.
+this can only be changed at the beginning of the program with 
+'_<the number of memory cells to be allocated>'
+
+by default, each memory cell is filled with its cell number, eg. cell 2 contains the integer 2.
+
+    incrementation:
+
+    +<the cell to be incremented>)
+
+    +3) <increments cell 3 by one>
+
+
+
+
+
+    decrementation:
+
+    +<the cell to be decremented>)
+
+    +3) <decrements cell 3 by one>
+
+
+
+
+    ASCII output:
+    
+    syntax: @<ASCII to be output>)
+            @[<cell to be output as ASCII>)
+    
+    @Hello, World) <prints "Hello, World">
+    
+    
+    
+    
+        if(testChar == '_')
+    {
+        if(fscanf(fileIn, "%d", &stackSize))
+        {
+            stack = (int*) malloc(sizeof(int) * stackSize);
+            if(stack == NULL)
+            {
+                fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));
+            }
+        }
+        else
+        {
+            fprintf(DEFAULT_OUTPUT, "\nElement after allocation indicator is not an integer at %ld", ftell(fileIn));
+            stackSize = 5;
+            stack = (int*) malloc(sizeof(int) * stackSize);
+            if(stack == NULL)
+            {
+                fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));   
+            }
+        }
+    }
+    else
+    {
+        stack = (int*) malloc(sizeof(int) * stackSize);    
+    }
+    
+    DEBUGGER
+    for(int i = 0; i <= stackSize; ++i)
+    {
+        stack[i] = i;
+    }

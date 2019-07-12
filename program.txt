@@ -1,0 +1,16 @@
+_90                                      <Allocate 90 memory cells>
+                                         <Each cell is filled with its own name. for example, cell 0 gets 0>
+                                         <If this command is not used, KuroScript defaults to 5 cells>
+
+@Hello, World)                           <Display "Hello, World">
+
++78)                                     <Increment Cell 78 by 1>
+-78)                                     <Decrement Cell 78 by 1>
+
+@
+ Cell 0 displayed as a character: [78   <Display cell 0 in different formats>
+ Cell 0 displayed as a number:    #78
+)
+
+. <End program>
+
