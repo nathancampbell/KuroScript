@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FILENAME "program.txt"
+#define FILENAME "conditions.txt"
 #define NEXTCHAR (testChar = fgetc(fileIn))
 #define DEFAULT_OUTPUT stdout
 #define DEFAULT_INPUT stdin
@@ -27,10 +27,27 @@
 int* allocateResources (FILE *output, FILE *fileIn, int *testChar, int *memorySize);
 void debug             (FILE *output, FILE *fileIn, int *memory, int testChar, int display);
 
+//Memory Changing
 int increment          (FILE *output, FILE *fileIn, int *memory, int *testChar);
 int decrement          (FILE *output, FILE *fileIn, int *memory, int *testChar);
+
+//Memory Evaluation
+int evaluateCell       (FILE *output, FILE *fileIn, int *memory, int *testChar);
+
+//Logic
+int evaluateCondition  (FILE *output, FILE *fileIn, int *memory, int *testChar);
+
+//Flow Changing
+int conditionTrue      (FILE *output, FILE *fileIn, int *memory, int *testChar);
+
+//IO
 int outputASCII        (FILE *output, FILE *fileIn, int *memory, int *testChar);
 int comment            (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int input              (FILE *output, FILE *fileIn, int *memory, int *testChar);
+
+int recursiveScan      (FILE *output, FILE *fileIn, int *memory, int *testChar, char until);
+
+void safeExit          (FILE *fileIn, int *memory);
 
 int main(void)
 {
@@ -44,39 +61,7 @@ int main(void)
     testChar = fgetc(fileIn);
     if((memory = allocateResources(DEFAULT_OUTPUT, fileIn, &testChar, &memorySize)) != NULL)
     {
-        while(NEXTCHAR != EOF)
-        {
-            //DEBUGGER
-            // Increment
-            increment(DEFAULT_OUTPUT, fileIn, memory, &testChar);
-            
-            // Decriment
-            decrement(DEFAULT_OUTPUT, fileIn, memory, &testChar);
-            
-            // Output as an ascii character
-            outputASCII(DEFAULT_OUTPUT, fileIn, memory, &testChar);
-                        
-            // Commenting
-            comment(DEFAULT_OUTPUT, fileIn, memory, &testChar);
-            
-            // Getting Input
-            if(testChar == '$')
-            {
-                if(fscanf(DEFAULT_INPUT, "%d", &testChar))
-                {
-                    //input is an integer
-                }
-                else
-                {
-                    //input is a character
-                }
-            }
-            // Terminate
-            if(testChar == '.')
-            {
-                break;
-            }
-        }
+        recursiveScan(DEFAULT_OUTPUT, fileIn, memory, &testChar, EOF);
     }
     else
     {
@@ -192,6 +177,7 @@ int increment(FILE *output, FILE *fileIn, int *memory, int *testChar)
             if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
             {
                 fprintf(DEFAULT_OUTPUT, "Invalid target of incrementation at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
             }
             else
             {
@@ -201,6 +187,7 @@ int increment(FILE *output, FILE *fileIn, int *memory, int *testChar)
         else
         {
             fprintf(DEFAULT_OUTPUT, "Invalid target of incrementation at %ld", ftell(fileIn));
+            safeExit(fileIn, memory);
         }
     }
     
@@ -221,6 +208,7 @@ int decrement(FILE *output, FILE *fileIn, int *memory, int *testChar)
             if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
             {
                 fprintf(DEFAULT_OUTPUT, "Invalid target of decrementation at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
             }
             else
             {
@@ -230,6 +218,7 @@ int decrement(FILE *output, FILE *fileIn, int *memory, int *testChar)
         else
         {
             fprintf(DEFAULT_OUTPUT, "Invalid target of decrementation at %ld", ftell(fileIn));
+            safeExit(fileIn, memory);
         }
     }
     
@@ -273,6 +262,7 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
                         *testChar = '.';
                         fprintf(DEFAULT_OUTPUT, "At character %ld, "
     "memory cell referenced does not exist", ftell(fileIn));
+                        safeExit(fileIn, memory);
                         break;
                     }
                 }
@@ -282,6 +272,7 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
                     *testChar = '.';
                     fprintf(DEFAULT_OUTPUT, "Element after memory " 
     "cell is not an integer at %ld", ftell(fileIn));
+                    safeExit(fileIn, memory);
                 }
             }
             else if(*testChar == '#')
@@ -296,18 +287,17 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
                     else
                     {
                     //    DEBUGGER
-                        *testChar = '.';
                         fprintf(DEFAULT_OUTPUT, "At character %ld, "
     "memory cell referenced does not exist", ftell(fileIn));
-                        break;
+                        safeExit(fileIn, memory);
                     }
                 }
                 else
                 {
-                   // DEBUGGER
-                    *testChar = '.';
+                    // DEBUGGER
                     fprintf(DEFAULT_OUTPUT, "Element after memory " 
     "cell is not an integer at %ld", ftell(fileIn));
+                    safeExit(fileIn, memory);
                 }
             }
             else
@@ -347,160 +337,231 @@ int comment(FILE *output, FILE *fileIn, int *memory, int *testChar)
     Changes flow of logic depending on condition
     
     Syntax:
-        ?
+        ?<firstArgument><operator><secondArgument>
+        <true path>
+        }
+        <false path>
+        ~
     
  ************************************************************************/
-int condition(FILE *output, FILE *fileIn, int *memory, int *testChar)
+int conditionTrue(FILE *output, FILE *fileIn, int *memory, int *testChar)
 {
-    int errorLevel = 0,
-        firstArgument,
-        secondArgument;
-    char firstOperator,
-         secondOperator;
+    int errorLevel = 0;
     
-    // Get firstArgument
     if(*testChar == '?')
     {
-        if(!(fscanf(fileIn, "%d", testChar)))
+        if(evaluateCondition(DEFAULT_OUTPUT, fileIn, memory, testChar))
         {
-            //Treat first as Character
-            if(*testChar == '[')
+            recursiveScan(DEFAULT_OUTPUT, fileIn, memory, testChar, '}');
+            while(*testChar != '~')
             {
-                //First Argument is a valid indicater of a Memory cell
-                if(fscanf(fileIn, "%d", testChar))
-                {
-                    //First Argument is a
-                    if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
-                    {
-                        firstArgument = memory[*testChar];
-                    }
-                    else
-                    {
-                        fprintf(output, "\nMemory cell not found at %ld\n", ftell(fileIn));
-                    }
-                }
-                else
-                {
-                    fprintf(output, "\nInvalid symbol after memory cell indicator at %ld\n", ftell(fileIn));
-                }
-            }
-            else
-            {
-                //First Argument is not a valid indicator of a Memory cell
-                fprintf(output, "\nInvalid argument for conditional if at%ld\n", ftell(fileIn));
+                *testChar = fgetc(fileIn);
             }
         }
         else
         {
-            //Treat first argument as constant
-            firstArgument = *testChar;
+            while(*testChar != '}')
+            {
+                *testChar = fgetc(fileIn);
+            }
+            recursiveScan(DEFAULT_OUTPUT, fileIn, memory, testChar, '~');
         }
-        
-        
-        // Get firstOperator
-        if(fscanf(fileIn, "%d", testChar))
-        {
-            fprintf(output, "Invalid operator at %ld", ftell(fileIn));
-        }
-        else
-        {
-            if(*testChar != '<' && *testChar != '>' && *testChar != '=')
-            {
-                fprintf(output, "Invalid operator at %ld", ftell(fileIn));
-            }
-            else
-            {
-                firstOperator = *testChar;
-            }
-        }
-
-        // Get secondOperator
-        if(fscanf(fileIn, "%d", testChar))
-        {
-            fprintf(output, "Invalid operator at %ld", ftell(fileIn));
-        }
-        else
-        {
-            if(*testChar != '<' && *testChar != '>' && *testChar != '=')
-            {
-                fprintf(output, "Invalid operator at %ld", ftell(fileIn));
-            }
-            else
-            {
-                secondOperator = *testChar;
-            }
-        }
-
-        if(!(fscanf(fileIn, "%d", testChar))) 
-        {
-            //Treat first as Character
-            if(*testChar == '[')
-            {
-                //First Argument is a valid indicater of a Memory cell
-                if(fscanf(fileIn, "%d", testChar))
-                {
-                    //First Argument is a
-                    if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
-                    {
-                        secondArgument = memory[*testChar];
-                    }
-                    else
-                    {
-                        fprintf(output, "\nMemory cell not found at %ld\n", ftell(fileIn));
-                    }
-                }
-                else
-                {
-                    fprintf(output, "\nInvalid symbol after memory cell indicator at %ld\n", ftell(fileIn));
-                }
-            }
-            else
-            {
-                //First Argument is not a valid indicator of a Memory cell
-                fprintf(output, "\nInvalid argument for conditional if at%ld\n", ftell(fileIn));
-            }
-        }
-        else
-        {
-            //Treat first argument as constant
-            secondArgument = *testChar;
-        }
-        
-        switch(firstOperator)
-        {
-            case '<':
-            if(firstArgument < secondArgument)
-            {
-                errorLevel = 1;
-            }
-            else
-            {
-                errorLevel = 0;
-            }
-            break;
-            
-            case '>':
-            if(firstArgument > secondArgument)
-            {
-                
-            }
-            break;
-            
-            case '=':
-            if(firstArgument == secondArgument)
-            {
-                
-            }
-            break;
-            
-            default:
-            fprintf(output, "Something has gone horribly wrong at %ld", ftell(fileIn));
-            break;
-        }
-    
-    
-        
     }
     
     return errorLevel;
+}
+
+int recursiveScan(FILE *output, FILE *fileIn, int *memory, int *testChar, char until)
+{
+    int errorLevel = 1;
+    
+    while((*testChar = fgetc(fileIn)) != EOF && *testChar != until)
+    {
+        //DEBUGGER
+        // Increment
+        increment(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // Decriment
+        decrement(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // Output as an ascii character
+        outputASCII(DEFAULT_OUTPUT, fileIn, memory, testChar);
+
+        // Commenting
+        comment(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // Getting Input
+        input(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // True condition flow change
+        conditionTrue(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        
+        // Terminate
+        if(*testChar == '.')
+        {
+            break;
+        }
+    }
+    
+    return errorLevel;
+}
+
+/*************************************************************************
+    Takes in a cell or literal, then an operator, then a cell or literal
+    
+    Then they are evaluated to 1 or 0.
+ ************************************************************************/
+int evaluateCondition(FILE *output, FILE *fileIn, int *memory, int *testChar)
+{
+    int evaluation = 0,
+        firstArgument,
+        secondArgument;
+    char operator = '0';
+    
+    //look for a valid first argument
+    if(fscanf(fileIn, "%d", testChar))
+    {
+        firstArgument = *testChar;
+    }
+    else
+    {
+        *testChar = fgetc(fileIn);
+        if(*testChar == '[')
+        {
+            firstArgument = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        }
+    }
+    //look for a valid operator
+    if(fscanf(fileIn, "%d", testChar))
+    {
+        fprintf(DEFAULT_OUTPUT, "\nInvalid operator at %ld\n", ftell(fileIn));
+        safeExit(fileIn, memory);
+    }
+    else
+    {
+        *testChar = fgetc(fileIn);
+        if(*testChar == '>' || *testChar == '<' || *testChar == '=')
+        {
+
+            operator = *testChar;
+        }
+    }
+    
+    //look for a valid second argument
+    if(fscanf(fileIn, "%d", testChar))
+    {
+        secondArgument = *testChar;
+    }
+    else
+    {
+        *testChar = fgetc(fileIn);
+        if(*testChar == '[')
+        {
+            secondArgument = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        }
+    }
+    
+    switch(operator)
+    {
+        case '<':
+            if(firstArgument < secondArgument)
+            {
+                evaluation = 1;
+            }
+            else
+            {
+                evaluation = 0;
+            }
+        break;
+       
+        case '>':
+            if(firstArgument > secondArgument)
+            {
+                evaluation = 1;
+            }
+            else
+            {
+                evaluation = 0;
+            }
+        break;
+        
+        case '=':
+            if(firstArgument == secondArgument)
+            {
+                evaluation = 1;
+            }
+            else
+            {
+                evaluation = 0;
+            }
+        break;
+        default:
+        fprintf(DEFAULT_OUTPUT, "no valid operator at%ld", ftell(fileIn));
+    }
+    
+    return evaluation;
+}
+
+/*************************************************************************
+    Gets the value of the cell number that is next in the file.
+ ************************************************************************/
+int evaluateCell(FILE *output, FILE *fileIn, int *memory, int *testChar)
+{
+    int cellValue;
+
+    if(fscanf(fileIn, "%d", testChar))
+    {
+        if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
+        {
+            cellValue = memory[*testChar];
+        }
+        else
+        {
+            fprintf(DEFAULT_OUTPUT, "At character %ld, memory cell "
+    "referenced does not exist", ftell(fileIn));
+            safeExit(fileIn, memory);
+        }
+    }
+    else
+    {
+        fprintf(DEFAULT_OUTPUT, "Memory cell referenced is invalid at"
+    " %ld", ftell(fileIn));
+        safeExit(fileIn, memory);
+    }
+    
+    return cellValue;
+}
+/*************************************************************************
+    Safely exits the interpreter at any time.
+ ************************************************************************/
+void safeExit(FILE *fileIn, int *memory)
+{
+    free(memory);
+    fclose(fileIn);
+    
+    return;
+}
+/*************************************************************************
+    Unfinished input function
+ ************************************************************************/
+int input(FILE *output, FILE *fileIn, int *memory, int *testChar)
+{
+    int errorLevel = 0;
+    
+    if(*testChar == '$')
+    {
+        if(fscanf(DEFAULT_INPUT, "%d", testChar))
+        {
+            //input is an integer
+        }
+        
+        else
+        {
+            //input is a character
+        }
+    }
+
+ 
+   return errorLevel;    
 }
