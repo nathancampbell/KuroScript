@@ -1,0 +1,153 @@
+<Documentation of KuroScript>
+
+/*************************************************************************
+    '_' Allocates a fixed amount of memory to be used by KuroScript.
+    
+    Syntax:
+    
+        _<number of cells to allocate>
+
+    Example:
+    
+        _40 <Allocates 40 memory cells to be used by KuroScript> 
+           
+    Note:
+        
+        Allocate is only usable at the beginning of the file. If it is 
+        used anywhere else in the script, it will be interpreted as NOOP.
+        
+        After a cell has been allocated, it is immediately filled with the
+        value of its name, ie. cell 0 has a value of 0, and cell 88 has a
+        value of 88.
+        
+ ************************************************************************/
+/*************************************************************************
+    '=' Assigns a value to a memory cell.
+    
+    Syntax:
+    
+        =<cell to be assigned>^<new value>
+    
+    Example:
+    
+        =7^3            <Assigns cell 7 the value of 3>
+        
+        =5^[9           <Assigns cell 5 the value of cell 9>
+        
+ ************************************************************************/
+/*************************************************************************
+    '+' increases the value of a memory cell by 1.
+    
+    Syntax:
+    
+        +<memory cell>
+    
+    Example:
+    
+        +9            <increases the value of cell 9 by 1>
+        
+ ************************************************************************/
+/*************************************************************************
+    '-' Decreases the value of a memory cell by 1.
+    
+    Syntax:
+    
+        -<memory cell>
+    
+    Example:
+    
+        -9            <decreases the value of cell 9 by 1>
+        
+ ************************************************************************/
+/*************************************************************************
+    '?' Branches the program into a true and false path.
+    
+    Syntax:
+    
+        ?<condition>
+            <true path>
+            }
+            <false path>
+            ~
+            
+    Example:
+    
+        ?[0>3            <Output changes depending on the value of cell 0>
+            @Cell 0 is greater than 3.)
+            }
+            @Cell 0 is less than 3.)
+            ~
+    Note:
+    
+        Valid conditions include:
+            [3>2    <cell 3 is greater than 2>
+            5<[7    < 5 is less than cell 7  >
+            9=9     <    9 is equal to 9     >
+
+ ************************************************************************/
+/*************************************************************************
+    ':' Loops until a condition is false.
+    
+    Syntax:
+    
+        :<condition> <instructions>;
+        
+    Example:
+    
+        :[0<5 +0;           < Loops until cell 0 is equal to 5 >
+        
+        :0=0 @Hello there); <Loops forever saying "Hello there">
+        
+ ************************************************************************/
+/*************************************************************************
+    '@' Outputs a string to stdout.
+    
+    Syntax:
+    
+        @<String to be output> #<Cell output as number>
+        [<Cell output as ASCII>)
+    
+    Example:
+    
+        @Hello, World)     <Outputs "Hello, World">
+        
+        @cell 2 holds #2)  <Displays the contents of cell 2>
+        
+        @cell 2 holds #2)  <Displays the contents of cell 2>
+        
+ ************************************************************************/
+/*************************************************************************
+    '<' Begins a commented area treated as NOOP
+    
+    Syntax:
+    
+        <<commented area>>
+    
+    Example:
+    
+        <This is a comment>         <Makes a comment>
+        
+    Note:
+        Comments are only valid outside of other operations. For example,
+        @<comment>) will display "<comment>" instead of treating the
+        comment as a NOOP.
+        
+ ************************************************************************/
+/*************************************************************************
+    '`' Jumps to a location in the source file.
+    
+    Syntax:
+    
+        `<location in file>
+    
+    Example:
+    
+        `5               <Jumps to the 5th character in the source file>
+        
+    Note:
+    
+        Since this is basically a goto statement, I would advise not using
+        it unless the goal of the program is to be short like for
+        code-golfing.
+        
+ ************************************************************************/
