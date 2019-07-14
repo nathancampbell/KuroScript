@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FILENAME "conditions.txt"
+#define FILENAME "loops.txt"
 #define NEXTCHAR (testChar = fgetc(fileIn))
 #define DEFAULT_OUTPUT stdout
 #define DEFAULT_INPUT stdin
@@ -30,6 +30,7 @@ void debug             (FILE *output, FILE *fileIn, int *memory, int testChar, i
 //Memory Changing
 int increment          (FILE *output, FILE *fileIn, int *memory, int *testChar);
 int decrement          (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int setValue           (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 //Memory Evaluation
 int evaluateCell       (FILE *output, FILE *fileIn, int *memory, int *testChar);
@@ -39,6 +40,8 @@ int evaluateCondition  (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 //Flow Changing
 int conditionTrue      (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int jumpTo             (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int loop               (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 //IO
 int outputASCII        (FILE *output, FILE *fileIn, int *memory, int *testChar);
@@ -61,6 +64,7 @@ int main(void)
     testChar = fgetc(fileIn);
     if((memory = allocateResources(DEFAULT_OUTPUT, fileIn, &testChar, &memorySize)) != NULL)
     {
+        fseek(fileIn, 0, SEEK_SET);
         recursiveScan(DEFAULT_OUTPUT, fileIn, memory, &testChar, EOF);
     }
     else
@@ -174,14 +178,15 @@ int increment(FILE *output, FILE *fileIn, int *memory, int *testChar)
     {
         if(fscanf(fileIn, "%d", testChar))
         {
-            if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
+            if(*testChar <= (NUM_OF_ELEMENTS + 1) && *testChar >= 0)
             {
-                fprintf(DEFAULT_OUTPUT, "Invalid target of incrementation at %ld", ftell(fileIn));
-                safeExit(fileIn, memory);
+                ++memory[*testChar];
             }
             else
             {
-                ++memory[*testChar];
+                printf("\n%d\n%d", *testChar, NUM_OF_ELEMENTS);
+                fprintf(DEFAULT_OUTPUT, "Invalid target of incrementation at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
             }
         }
         else
@@ -205,14 +210,14 @@ int decrement(FILE *output, FILE *fileIn, int *memory, int *testChar)
     {
         if(fscanf(fileIn, "%d", testChar))
         {
-            if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
+            if(*testChar <= (NUM_OF_ELEMENTS - 1) && *testChar >= 0)
             {
-                fprintf(DEFAULT_OUTPUT, "Invalid target of decrementation at %ld", ftell(fileIn));
-                safeExit(fileIn, memory);
+                --memory[*testChar];
             }
             else
             {
-                --memory[*testChar];
+                fprintf(DEFAULT_OUTPUT, "Invalid target of decrementation at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
             }
         }
         else
@@ -244,14 +249,14 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
     {
         *testChar = fgetc(fileIn);
         //DEBUGGER
-        while(*testChar != ')')
+        while(*testChar != EOF && *testChar != ')')
         {
             comment(DEFAULT_OUTPUT, fileIn, memory, testChar);
             if(*testChar == '[')
             {
                 if(fscanf(fileIn, "%d", testChar))
                 {
-                    if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
+                    if(*testChar <= (NUM_OF_ELEMENTS - 1) || *testChar >= 0)
                     {
                   //      DEBUGGER
                         fprintf(DEFAULT_OUTPUT, "%c", memory[*testChar]);
@@ -279,9 +284,9 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
             {
                 if(fscanf(fileIn, "%d", testChar))
                 {
-                    if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
+                    if(*testChar <= (NUM_OF_ELEMENTS - 1) || *testChar >= 0)
                     {
-                  //      DEBUGGER
+                    //    DEBUGGER
                         fprintf(DEFAULT_OUTPUT, "%d", memory[*testChar]);
                     }
                     else
@@ -314,7 +319,7 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
 }
 
 /*************************************************************************
-    Disreguards commented area.
+    Disreguards commented area. <comment>
  ************************************************************************/
 int comment(FILE *output, FILE *fileIn, int *memory, int *testChar)
 {
@@ -378,11 +383,14 @@ int recursiveScan(FILE *output, FILE *fileIn, int *memory, int *testChar, char u
     while((*testChar = fgetc(fileIn)) != EOF && *testChar != until)
     {
         //DEBUGGER
-        // Increment
+        // Increment the value of a memory cell.
         increment(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
-        // Decriment
+        // Decriment the value of memory cell.
         decrement(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // Setting the value of a memory cell.
+        setValue(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
         // Output as an ascii character
         outputASCII(DEFAULT_OUTPUT, fileIn, memory, testChar);
@@ -391,11 +399,16 @@ int recursiveScan(FILE *output, FILE *fileIn, int *memory, int *testChar, char u
         comment(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
         // Getting Input
-        input(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        //input(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
         // True condition flow change
         conditionTrue(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
+        // Goto
+        jumpTo(DEFAULT_OUTPUT, fileIn, memory, testChar);
+        
+        // Loop
+        loop(DEFAULT_OUTPUT, fileIn, memory, testChar);
         
         // Terminate
         if(*testChar == '.')
@@ -512,12 +525,13 @@ int evaluateCell(FILE *output, FILE *fileIn, int *memory, int *testChar)
 
     if(fscanf(fileIn, "%d", testChar))
     {
-        if(*testChar <= NUM_OF_ELEMENTS || *testChar >= 0)
+        if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
         {
             cellValue = memory[*testChar];
         }
         else
         {
+            printf("\ntestchar:%d or %c", *testChar, *testChar);
             fprintf(DEFAULT_OUTPUT, "At character %ld, memory cell "
     "referenced does not exist", ftell(fileIn));
             safeExit(fileIn, memory);
@@ -539,29 +553,157 @@ void safeExit(FILE *fileIn, int *memory)
 {
     free(memory);
     fclose(fileIn);
-    
+    exit(0);
     return;
 }
+
 /*************************************************************************
-    Unfinished input function
+    Sets the value of one memory cell to a literal or the value of another
  ************************************************************************/
-int input(FILE *output, FILE *fileIn, int *memory, int *testChar)
+int setValue(FILE *output, FILE *fileIn, int *memory, int *testChar)
+{
+    int errorLevel = 0,
+        cellToChange,
+        newValue;
+    
+    if(*testChar == '=')
+    {
+        if(fscanf(fileIn, "%d", testChar))
+        {
+            if(*testChar <= (NUM_OF_ELEMENTS - 1) || *testChar >= 0)
+            {
+                cellToChange = *testChar;
+            }
+            else
+            {
+                fprintf(DEFAULT_OUTPUT, "At character %ld, memory cell "
+        "referenced does not exist", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
+        }
+        else
+        {
+            if((*testChar = fgetc(fileIn)) == '[')
+            {
+                fprintf(DEFAULT_OUTPUT, "'[' is not needed at "
+    "%ld", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
+            else
+            {
+                fprintf(DEFAULT_OUTPUT, "Assignment is not to an integer at "
+        "%ld", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
+        }
+        if(fscanf(fileIn, "%d", testChar))
+        {
+            fprintf(DEFAULT_OUTPUT, "'^' expected after cell to be "
+            "asigned at %ld", ftell(fileIn));
+            safeExit(fileIn, memory);
+        }
+        else
+        {
+            *testChar = fgetc(fileIn);
+            if(*testChar != '^')
+            {
+                fprintf(DEFAULT_OUTPUT, "'^' expected after cell to be "
+        "asigned at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
+            else
+            {
+                if(fscanf(fileIn, "%d", testChar))
+                {
+                    newValue = *testChar;
+                }
+                else
+                {
+                    *testChar = fgetc(fileIn);
+                    if(*testChar == '[')
+                    {
+                        newValue = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
+                    }
+                    else
+                    {
+                        newValue = *testChar;
+                    }
+                }
+            }
+            memory[cellToChange] = newValue;
+        }
+    
+
+    }
+    
+    return errorLevel;
+}
+
+/*************************************************************************
+    Jumps to the specified
+ ************************************************************************/
+int jumpTo(FILE *output, FILE *fileIn, int *memory, int *testChar)
 {
     int errorLevel = 0;
     
-    if(*testChar == '$')
+    if(*testChar == '`')
     {
-        if(fscanf(DEFAULT_INPUT, "%d", testChar))
+        if(fscanf(fileIn, "%d", testChar))
         {
-            //input is an integer
+            if(*testChar == EOF)
+            {
+                fprintf(DEFAULT_OUTPUT, "jump location not available at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
+            else
+            {
+                fseek(fileIn, *testChar, SEEK_SET);
+            }
         }
-        
         else
         {
-            //input is a character
+            *testChar = fgetc(fileIn);
+            if(*testChar == '[')
+            {
+                fseek(fileIn, evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar), SEEK_SET);
+            }
+            else
+            {
+                fprintf(DEFAULT_OUTPUT, "jump location not available at %ld", ftell(fileIn));
+                safeExit(fileIn, memory);
+            }
         }
     }
+        
+    return errorLevel;
+}
 
- 
-   return errorLevel;    
+/*************************************************************************
+    Loops until a condition is false
+    
+    :<condition> <instructions>;
+    
+ ************************************************************************/
+int loop(FILE *output, FILE *fileIn, int *memory, int *testChar)
+{
+    int errorLevel = 0,
+    loopLocation = ftell(fileIn) - 1;
+    
+    if(*testChar == ':')
+    {
+        if(evaluateCondition(DEFAULT_OUTPUT, fileIn, memory, testChar))
+        {
+            recursiveScan(DEFAULT_OUTPUT, fileIn, memory, testChar, ';');
+            fseek(fileIn, loopLocation, SEEK_SET);
+        }
+        else
+        {
+            while(*testChar != ';' && *testChar != EOF)
+            {
+                *testChar = fgetc(fileIn);
+            }
+        }
+    }
+    
+    return errorLevel;
 }

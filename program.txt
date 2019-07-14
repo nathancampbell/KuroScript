@@ -8,9 +8,38 @@ _90                                      <Allocate 90 memory cells>
 -78)                                     <Decrement Cell 78 by 1>
 
 @
- Cell 0 displayed as a character: [78   <Display cell 0 in different formats>
+ Cell 0 displayed as a character: [78    <Display cell 0 in different formats>
  Cell 0 displayed as a number:    #78
 )
 
+?2>1@True
+)
+}
+@False
+)
+~ 
+
+=4,2)
 . <End program>
 
+_1@@.).
+
+
+
+
+
+_2
+=0^2
+=1^30
+
+:[0<[1
+    :[0<[1 
+    +0
+    @h)
+    ;
+;
+
+@#0
+)
+
+.
