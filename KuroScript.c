@@ -1,24 +1,22 @@
 /*************************************************************************
- CLASS INFORMATION //Idk why this is still here
+ INFORMATION
  -----------------
-   Program Name: Up to your interpretation
+   Program Name: KuroScript
    Programmer:   Nathan Campbell
    Instructor:   Myself, StackOverflow, and Me
-   Date Due:     Someday, maybe.
 
  DOCUMENTATION
  -------------
-    Interprets a stupid language.
+    Interprets KuroScript files.
  ************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 
-#define FILENAME "Fibonacci.txt"
-#define NEXTCHAR (testChar = fgetc(fileIn))
+#define FILENAME "conditions.txt"
 #define DEFAULT_OUTPUT stdout
 #define DEFAULT_INPUT stdin
 #define DEFAULT_ERROR stderr
-#define DEFAULT_MEMORY_SIZE 5
+#define DEFAULT_MEMORY_SIZE 20
 #define NUM_OF_ELEMENTS (int)(sizeof(memory)/sizeof(int))
 //#define DEBUGGER debug(DEFAULT_OUTPUT, fileIn, memory, testChar, 1);
 
@@ -40,17 +38,18 @@ int evaluateCondition  (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 //Flow Changing
 int conditionTrue      (FILE *output, FILE *fileIn, int *memory, int *testChar);
-int jumpTo             (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int jumpTo             (FILE *output, FILE *fileIn, int *memory, int *testChar); //no memory used
 int loop               (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 //IO
 int outputASCII        (FILE *output, FILE *fileIn, int *memory, int *testChar);
-int comment            (FILE *output, FILE *fileIn, int *memory, int *testChar);
+int comment            (FILE *output, FILE *fileIn, int *memory, int *testChar); //no memory used
 int input              (FILE *output, FILE *fileIn, int *memory, int *testChar);
 
 int recursiveScan      (FILE *output, FILE *fileIn, int *memory, int *testChar, char until);
 
 void safeExit          (FILE *fileIn, int *memory);
+
 
 int main(void)
 {
@@ -83,62 +82,73 @@ int* allocateResources(FILE *output, FILE *fileIn, int *testChar, int *memorySiz
 
     if(*testChar == '_')
     {
-        //DEBUGGER
-        if(fscanf(fileIn, "%d", memorySize))
+        if(fscanf(fileIn, "%d", testChar))
         {
-            if(*memorySize > 0)
+            printf("1\n");
+            if((*memorySize = *testChar) > 0)
             {
-                if((memory = (int*) malloc(sizeof(int) * *memorySize)) == NULL)
+                printf("2\n memory size: %d", *testChar);
+                if((memory = malloc(*memorySize * sizeof(int))) == NULL)
                 {
-                    //DEBUGGER
-                    
                     fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));
                 }
                 else
                 {
-                   // DEBUGGER
-                  // printf("\nAllocation Successfull?\n");
+                    if(*memorySize > 0)
+                    {
+                        for(int i = 0; i < *memorySize; ++i)
+                        {
+                            memory[i] = i;
+                        }
+                    }
                 }
+                printf("\nElements:%d", NUM_OF_ELEMENTS);
+                printf("\nsizeof(int)*sizeof(memory): %ld\n", sizeof(int)*sizeof(memory));
+                printf("\nmemory:%ld\n", sizeof(memory));
+                printf("\nint size:%ld\n", sizeof(int));
             }
             else
             {
                 fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld. memorySize is invalid\n", ftell(fileIn));
+                memory = NULL;
+                safeExit(fileIn, memory);
             }
         }
         else
         {
-            fprintf(DEFAULT_OUTPUT, "\nElement after allocation indicator is not an integer at %ld", ftell(fileIn));
-            *memorySize = DEFAULT_MEMORY_SIZE;
-            if((memory = (int*) malloc(sizeof(int) * *memorySize)) == NULL)
-            {
-               // DEBUGGER
-                *testChar = '.';
-                fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));
-            }
+            fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));
+            memory = NULL;
+            safeExit(fileIn, memory);
         }
     }
     else
     {
-        if((memory = (int*) malloc(sizeof(int) * *memorySize)) == NULL)
+        if((memory = malloc(sizeof(int) * DEFAULT_MEMORY_SIZE)) == NULL)
         {
           //  DEBUGGER
+          printf("3");
             fprintf(DEFAULT_OUTPUT, "\nAllocation failure at %ld\n", ftell(fileIn));
+            safeExit(fileIn, memory);
         }
         else
         {
-           // DEBUGGER
-//           printf("%d memory cells allocated", *memorySize);
+                        printf("\nElements:%d", NUM_OF_ELEMENTS);
+                printf("\nsizeof(int)*sizeof(memory): %ld\n", sizeof(int)*sizeof(memory));
+                printf("\nmemory:%ld\n", sizeof(memory));
+                printf("\nint size:%ld\n", sizeof(int));
+            printf("4");
+            if(*memorySize > 0)
+            {
+                for(int i = 0; i < *memorySize; ++i)
+                {
+                    memory[i] = i;
+                }
+            }
         }
     }
     
     //DEBUGGER
-    if(*memorySize > 0)
-    {
-        for(int i = 0; i < *memorySize; ++i)
-        {
-            memory[i] = i;
-        }
-    }
+
     
     return memory;
 }
@@ -243,62 +253,16 @@ int outputASCII(FILE *output, FILE *fileIn, int *memory, int *testChar)
     //DEBUGGER
     while(*testChar != EOF && *testChar != ')')
     {
-        if(*testChar == '[')
+        if(*testChar == '%' && fgetc(fileIn) == '[')
         {
-            if(fscanf(fileIn, "%d", testChar))
-            {
-                if(*testChar <= (NUM_OF_ELEMENTS - 1) || *testChar >= 0)
-                {
-              //      DEBUGGER
-                    fprintf(DEFAULT_OUTPUT, "%c", memory[*testChar]);
-                }
-                else
-                {
-                //    DEBUGGER
-                    *testChar = '.';
-                    fprintf(DEFAULT_OUTPUT, "At character %ld, "
-    "memory cell referenced does not exist", ftell(fileIn));
-                    safeExit(fileIn, memory);
-                    break;
-                }
-            }
-            else
-            {
-               // DEBUGGER
-                *testChar = '.';
-                fprintf(DEFAULT_OUTPUT, "Element after memory " 
-    "cell is not an integer at %ld", ftell(fileIn));
-                safeExit(fileIn, memory);
-            }
+            fprintf(DEFAULT_OUTPUT, "%c", evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar));
         }
-        else if(*testChar == '#')
+        else if(*testChar == '#' && fgetc(fileIn) == '[')
         {
-            if(fscanf(fileIn, "%d", testChar))
-            {
-                if(*testChar <= (NUM_OF_ELEMENTS - 1) || *testChar >= 0)
-                {
-                //    DEBUGGER
-                    fprintf(DEFAULT_OUTPUT, "%d", memory[*testChar]);
-                }
-                else
-                {
-                    //    DEBUGGER
-                    fprintf(DEFAULT_OUTPUT, "At character %ld, "
-    "memory cell referenced does not exist", ftell(fileIn));
-                    safeExit(fileIn, memory);
-                }
-            }
-            else
-            {
-                // DEBUGGER
-                fprintf(DEFAULT_OUTPUT, "Element after memory " 
-    "cell is not an integer at %ld", ftell(fileIn));
-                safeExit(fileIn, memory);
-            }
+            fprintf(DEFAULT_OUTPUT, "%d", evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar));
         }
         else
         {
-            //DEBUGGER
             fprintf(DEFAULT_OUTPUT, "%c", *testChar);
         }
         *testChar = fgetc(fileIn);
@@ -440,8 +404,7 @@ int evaluateCondition(FILE *output, FILE *fileIn, int *memory, int *testChar)
     }
     else
     {
-        *testChar = fgetc(fileIn);
-        if(*testChar == '[')
+        if(fgetc(fileIn) == '[')
         {
             firstArgument = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
         }
@@ -470,10 +433,7 @@ int evaluateCondition(FILE *output, FILE *fileIn, int *memory, int *testChar)
     else
     {
         *testChar = fgetc(fileIn);
-        if(*testChar == '[')
-        {
-            secondArgument = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
-        }
+        secondArgument = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
     }
     
     switch(operator)
@@ -524,6 +484,9 @@ int evaluateCell(FILE *output, FILE *fileIn, int *memory, int *testChar)
 {
     int cellValue;
 
+*testChar = fgetc(fileIn);
+if(*testChar == '[')
+{
     if(fscanf(fileIn, "%d", testChar))
     {
         if(*testChar <= NUM_OF_ELEMENTS && *testChar >= 0)
@@ -533,6 +496,7 @@ int evaluateCell(FILE *output, FILE *fileIn, int *memory, int *testChar)
         else
         {
             printf("\ntestchar:%d or %c", *testChar, *testChar);
+            printf("\n%d", NUM_OF_ELEMENTS);
             fprintf(DEFAULT_OUTPUT, "At character %ld, memory cell "
     "referenced does not exist", ftell(fileIn));
             safeExit(fileIn, memory);
@@ -540,10 +504,19 @@ int evaluateCell(FILE *output, FILE *fileIn, int *memory, int *testChar)
     }
     else
     {
-        fprintf(DEFAULT_OUTPUT, "Memory cell referenced is invalid at"
-    " %ld", ftell(fileIn));
-        safeExit(fileIn, memory);
+        *testChar = fgetc(fileIn);
+        if(*testChar == '[')
+        {
+            cellValue = memory[evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar)];
+        }
+        else
+        {
+            fprintf(DEFAULT_OUTPUT, "Memory cell referenced is invalid at"
+        " %ld", ftell(fileIn));
+            safeExit(fileIn, memory);
+        }
     }
+}
     
     return cellValue;
 }
@@ -619,14 +592,7 @@ int setValue(FILE *output, FILE *fileIn, int *memory, int *testChar)
             else
             {
                 *testChar = fgetc(fileIn);
-                if(*testChar == '[')
-                {
-                    newValue = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
-                }
-                else
-                {
-                    newValue = *testChar;
-                }
+                newValue = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar);
             }
         }
         memory[cellToChange] = newValue;
@@ -640,7 +606,8 @@ int setValue(FILE *output, FILE *fileIn, int *memory, int *testChar)
  ************************************************************************/
 int jumpTo(FILE *output, FILE *fileIn, int *memory, int *testChar)
 {
-    int errorLevel = 0;
+    int errorLevel = 0,
+        jumpLocation;
 
     if(fscanf(fileIn, "%d", testChar))
     {
@@ -657,14 +624,14 @@ int jumpTo(FILE *output, FILE *fileIn, int *memory, int *testChar)
     else
     {
         *testChar = fgetc(fileIn);
-        if(*testChar == '[')
-        {
-            fseek(fileIn, evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar), SEEK_SET);
-        }
-        else
+        if((jumpLocation = evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar)) < 0)
         {
             fprintf(DEFAULT_OUTPUT, "jump location not available at %ld", ftell(fileIn));
             safeExit(fileIn, memory);
+        }
+        else
+        {
+            fseek(fileIn, evaluateCell(DEFAULT_OUTPUT, fileIn, memory, testChar), SEEK_SET);
         }
     }
         
